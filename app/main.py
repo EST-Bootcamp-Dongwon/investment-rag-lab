@@ -4,18 +4,30 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, Response
 from functools import lru_cache
 import os
+import asyncio
 from pathlib import Path
 import re
 import requests
 
 from pgvector.sqlalchemy import Vector  # noqa: F401 — SQLAlchemy type 등록
 
+from app.api.routes.analysis_main import router as analysis_main_router
+from app.api.routes.lean import router as lean_router
+from app.api.routes.lex import router as lex_router
+from app.api.routes.llm_bench import router as llm_bench_router
+from app.api.routes.ml import router as ml_router
+from app.api.routes.quant import router as quant_router
+from app.api.routes.quiz import router as quiz_router
+from app.api.routes.tax import router as tax_router
+from app.api.routes.vocabulary_exam import router as vocabulary_exam_router
+from app.api.routes.rag_analysis import router as rag_analysis_router
 from app.api.routes.chat import router as chat_router
 from app.api.routes.health import router as health_router
 from app.api.routes.ingest import router as ingest_router
 from app.api.routes.market import router as market_router
 from app.api.routes.backtest import router as backtest_router
 from app.api.routes.auth import router as auth_router
+from app.api.routes.domain_auth import router as domain_auth_router
 from app.core.config import settings
 from app.core.database import Base, engine
 
@@ -29,6 +41,16 @@ import app.models.stock_price_history  # noqa: F401
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title=settings.app_name)
+_plot_lock = asyncio.Lock()
+
+
+@app.middleware("http")
+async def serialize_matplotlib(request: Request, call_next):
+    # pyplot owns process-global figure state; concurrent requests corrupt axes.
+    if request.url.path.startswith(("/api/quant/", "/api/ml/", "/api/dl/", "/api/cv/", "/api/nlp/", "/api/macro/simulation")):
+        async with _plot_lock:
+            return await call_next(request)
+    return await call_next(request)
 
 app.add_middleware(
     CORSMiddleware,
@@ -80,7 +102,7 @@ def historic_bond_image():
 async def prevent_frontend_cache(request: Request, call_next):
     """Always refresh the client shell and its mutable local assets."""
     response = await call_next(request)
-    if request.url.path == "/" or request.url.path.startswith("/static/"):
+    if request.url.path == "/" or request.url.path.startswith(("/static/", "/analysis/")):
         response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
         response.headers["Pragma"] = "no-cache"
         response.headers["Expires"] = "0"
@@ -91,10 +113,22 @@ app.include_router(ingest_router)
 app.include_router(market_router)
 app.include_router(backtest_router)
 app.include_router(auth_router)
+app.include_router(domain_auth_router)
+app.include_router(analysis_main_router)
+app.include_router(lean_router)
+app.include_router(lex_router)
+app.include_router(llm_bench_router)
+app.include_router(ml_router)
+app.include_router(quant_router)
+app.include_router(quiz_router)
+app.include_router(tax_router)
+app.include_router(vocabulary_exam_router)
+app.include_router(rag_analysis_router)
 app.include_router(chat_router)
 
 # Serve frontend static files
 _frontend_dir = os.path.join(os.path.dirname(__file__), "..", "frontend")
+_analysis_frontend_dir = os.path.join(_frontend_dir, "analysis")
 _data_dir = Path(os.path.join(os.path.dirname(__file__), "..", "data")).resolve()
 _learning_text_extensions = {".txt", ".md", ".mdx"}
 
@@ -156,7 +190,18 @@ def read_learning_document(path: str):
 
 
 if os.path.isdir(_frontend_dir):
+    # investment-analysis의 실제 SPA를 같은 도메인에서 제공한다. 분석 화면의 모든
+    # API 요청은 절대 경로(/api/...)이므로 domain-rag API와 한 서비스에서 공유된다.
+    if os.path.isdir(_analysis_frontend_dir):
+        app.mount(
+            "/analysis",
+            StaticFiles(directory=_analysis_frontend_dir, html=True),
+            name="investment-analysis-frontend",
+        )
+        app.mount("/images", StaticFiles(directory=os.path.join(_analysis_frontend_dir, "images")), name="analysis-images")
     app.mount("/static", StaticFiles(directory=_frontend_dir), name="static")
+    if (_data_dir / "image").is_dir():
+        app.mount("/image", StaticFiles(directory=_data_dir / "image"), name="notebook-images")
 
     @app.get("/", include_in_schema=False)
     def serve_index():
