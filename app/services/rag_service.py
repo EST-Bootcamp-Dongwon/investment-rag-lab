@@ -88,6 +88,10 @@ class RAGService:
             )
             if not existing:
                 db.add(row)
+            else:
+                existing.title = row.title
+                existing.content = row.content
+                existing.domain = row.domain
         db.commit()
 
         return len(chunk_docs)
@@ -112,7 +116,7 @@ class RAGService:
 
     def save_upload_file(self, filename: str, file_bytes: bytes) -> str:
         os.makedirs(settings.upload_dir, exist_ok=True)
-        safe_name = f"{uuid.uuid4()}_{filename}"
+        safe_name = f"{uuid.uuid4()}_{os.path.basename(filename.replace(chr(92), '/'))}"
         save_path = os.path.join(settings.upload_dir, safe_name)
         with open(save_path, "wb") as f:
             f.write(file_bytes)

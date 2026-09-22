@@ -39,6 +39,16 @@ DOMAIN_SYSTEM_PROMPTS: dict[str, str] = {
 
 
 class LLMService:
+    @staticmethod
+    def extractive_answer(chunks: list[dict], domain: str = "general") -> str:
+        if not chunks:
+            return "관련 문서를 찾지 못했습니다. 학습 자료를 등록하거나 질문을 구체화해 주세요."
+        excerpts = [f"[{i}] {c['title']}\n{c['content'][:650]}" for i, c in enumerate(chunks[:4], 1)]
+        answer = "문서 발췌 모드 — 생성형 모델의 해석이 아닌 검색된 원문입니다.\n\n" + "\n\n".join(excerpts)
+        if domain == "finance":
+            answer += "\n\n투자 판단과 책임은 투자자 본인에게 있습니다."
+        return answer
+
     def __init__(self):
         self.base_url = settings.vllm_base_url.rstrip("/")
         self.model = settings.vllm_model
@@ -63,6 +73,9 @@ class LLMService:
         """
         if not chunks and not session_history and not long_term_hits:
             return "관련 문서를 찾지 못했습니다. 문서를 먼저 등록하거나 질문을 더 구체적으로 입력해 주세요."
+
+        if settings.llm_mode == "extractive":
+            return self.extractive_answer(chunks, domain)
 
         system_prompt = DOMAIN_SYSTEM_PROMPTS.get(domain, DOMAIN_SYSTEM_PROMPTS["general"])
 
@@ -119,12 +132,8 @@ class LLMService:
                 response.raise_for_status()
                 data = response.json()
                 return data["choices"][0]["message"]["content"].strip()
-        except Exception as e:
-            titles = ", ".join(sorted(set(c["title"] for c in chunks))) if chunks else "없음"
-            return (
-                f"LLM 호출에 실패했습니다: {e}\n\n"
-                f"대신 검색 결과 기준으로 보면, 관련 문서는 {titles} 입니다."
-            )
+        except (httpx.HTTPError, KeyError, IndexError):
+            return "생성형 모델 연결 불가. " + self.extractive_answer(chunks, domain)
 
     def call_with_tools(
         self,
