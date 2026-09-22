@@ -12,3 +12,7 @@ __pycache__
 venv
 .venv
 data/uploads
+data/lean-workflows
+DATA-ROOT
+scratch
+scratch_*

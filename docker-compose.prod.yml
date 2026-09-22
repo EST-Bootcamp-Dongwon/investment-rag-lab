@@ -1,50 +1,37 @@
-name: domain-rag-lab
+name: investment-rag-lab
 
+# EC2 production stack. MongoDB is required for quizzes and analysis accounts.
+# Search has a local fallback; large local LLM/GPU inference is optional.
 services:
   postgres:
     image: pgvector/pgvector:pg16
     env_file:
-      - ${APP_ENV_FILE:-.env.prod}
+      - "${APP_ENV_FILE:-.env.prod}"
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-ragdb}
       POSTGRES_USER: ${POSTGRES_USER:-raguser}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ragpass}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./init.sql:/docker-entrypoint-initdb.d/01-enable-pgvector.sql:ro
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
-      interval: 5s
-      timeout: 5s
-      retries: 12
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env.prod}
+    volumes: [postgres_data:/var/lib/postgresql/data, "./init.sql:/docker-entrypoint-initdb.d/01-enable-pgvector.sql:ro"]
+    healthcheck: { test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"], interval: 5s, timeout: 5s, retries: 12 }
     restart: unless-stopped
 
   redis:
     image: redis:7-alpine
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 12
+    command: redis-server --appendonly yes
+    volumes: [redis_data:/data]
+    healthcheck: { test: ["CMD", "redis-cli", "ping"], interval: 5s, timeout: 3s, retries: 12 }
     restart: unless-stopped
 
   qdrant:
     image: qdrant/qdrant:v1.15.1
-    volumes:
-      - qdrant_data:/qdrant/storage
-    healthcheck:
-      test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/6333'"]
-      interval: 5s
-      timeout: 3s
-      retries: 12
+    volumes: [qdrant_data:/qdrant/storage]
+    healthcheck: { test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/6333'"], interval: 5s, timeout: 3s, retries: 12 }
     restart: unless-stopped
 
   api:
     build: .
     env_file:
-      - ${APP_ENV_FILE:-.env.prod}
+      - "${APP_ENV_FILE:-.env.prod}"
     environment:
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
@@ -52,47 +39,74 @@ services:
       REDIS_PORT: 6379
       QDRANT_HOST: qdrant
       QDRANT_PORT: 6333
-      LEAN_SSH_HOST: ${LEAN_SSH_HOST:-}
-      LEAN_SSH_USER: ${LEAN_SSH_USER:-ubuntu}
-      LEAN_SSH_KEY_PATH: ${LEAN_SSH_KEY_PATH:-}
-      LEAN_REMOTE_WORKDIR: ${LEAN_REMOTE_WORKDIR:-/home/ubuntu/lean-workflows}
-      LEAN_DOCKER_IMAGE: ${LEAN_DOCKER_IMAGE:-quantconnect/lean:latest}
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    volumes:
-      # Keep the image-bundled learning samples read-only in /app/data while
-      # retaining user uploads across image rebuilds and container replacement.
-      - app_uploads:/app/data/uploads
-      - ${LEAN_SSH_KEY_HOST_PATH:-/dev/null}:${LEAN_SSH_KEY_PATH:-/run/secrets/lean.pem}:ro
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+      QDRANT_URL: http://qdrant:6333
+      QDRANT_COLLECTION: ${QDRANT_COLLECTION:-domain_docs}
+      RAG_QDRANT_COLLECTION: ${RAG_QDRANT_COLLECTION:-investment_docs}
+      MONGODB_URL: mongodb://mongo:27017
+      MONGODB_DB: ${MONGODB_DB:-investment_db}
+      LLM_MODE: ${LLM_MODE:-extractive}
+      OMP_NUM_THREADS: 1
+      MKL_NUM_THREADS: 1
+      RAG_EMBEDDING_PROVIDER: ${RAG_EMBEDDING_PROVIDER:-hash}
+      RAG_LLM_BASE_URL: ${RAG_LLM_BASE_URL:-}
+      RAG_LLM_API_KEY: ${RAG_LLM_API_KEY:-}
+      RAG_LLM_MODEL: ${RAG_LLM_MODEL:-}
+      LEAN_RUNNER: ${LEAN_RUNNER:-off}
+    volumes: [app_uploads:/app/data/uploads]
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips='*'
     depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      qdrant:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 6
-      start_period: 30s
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      qdrant: { condition: service_healthy }
+      mongo: { condition: service_healthy }
+    healthcheck: { test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"], interval: 10s, timeout: 5s, retries: 12, start_period: 30s }
+    restart: unless-stopped
+
+  streamlit:
+    build: .
+    env_file:
+      - "${APP_ENV_FILE:-.env.prod}"
+    environment: { API_BASE_URL: http://api:8000 }
+    ports: ["8290:8501"]
+    command: streamlit run /app/streamlit_app.py --server.port 8501 --server.address 0.0.0.0 --server.headless true
+    depends_on:
+      api: { condition: service_healthy }
+    restart: unless-stopped
+
+  mongo:
+    image: mongo:7
+    command: mongod --wiredTigerCacheSizeGB 0.25
+    volumes: [mongo_data:/data/db]
+    healthcheck: { test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"], interval: 10s, timeout: 5s, retries: 12 }
     restart: unless-stopped
 
   caddy:
     image: caddy:2.8-alpine
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
+    environment:
+      CADDY_SITE_ADDRESS: "${CADDY_SITE_ADDRESS:-:80}"
+    ports: ["80:80", "443:443"]
+    volumes: ["./Caddyfile:/etc/caddy/Caddyfile:ro", caddy_data:/data, caddy_config:/config]
     depends_on:
-      api:
-        condition: service_healthy
+      api: { condition: service_healthy }
     restart: unless-stopped
+
+  curriculum-index:
+    profiles: [tools]
+    build: .
+    env_file:
+      - "${APP_ENV_FILE:-.env.prod}"
+    environment:
+      QDRANT_URL: http://qdrant:6333
+      QDRANT_COLLECTION: "${QDRANT_COLLECTION:-domain_docs}"
+      RAG_QDRANT_COLLECTION: "${RAG_QDRANT_COLLECTION:-investment_docs}"
+      QDRANT_HOST: qdrant
+      POSTGRES_HOST: postgres
+      REDIS_HOST: redis
+    depends_on:
+      qdrant: { condition: service_healthy }
+      api: { condition: service_healthy }
+    command: python -m app.ops.index_curriculum
+    restart: "no"
 
 volumes:
   postgres_data:
@@ -101,3 +115,4 @@ volumes:
   caddy_data:
   caddy_config:
   app_uploads:
+  mongo_data:

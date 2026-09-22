@@ -18,10 +18,13 @@ RUN arch="$(uname -m)" \
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
+RUN apt-get update && apt-get install -y --no-install-recommends fonts-nanum \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY app/ ./app/
 COPY frontend/ ./frontend/
 COPY data/ ./data/
+COPY streamlit_app.py ./streamlit_app.py
 
 RUN mkdir -p /app/data/uploads
 
