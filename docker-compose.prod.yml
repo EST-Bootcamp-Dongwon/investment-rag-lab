@@ -42,8 +42,6 @@ services:
       POSTGRES_PORT: 5432
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      QDRANT_COLLECTION: ${QDRANT_COLLECTION:-domain_docs}
-      RAG_QDRANT_COLLECTION: ${RAG_QDRANT_COLLECTION:-investment_docs}
       MONGODB_URL: mongodb://mongo:27017
       MONGODB_DB: ${MONGODB_DB:-investment_db}
       LLM_MODE: ${LLM_MODE:-extractive}
@@ -127,15 +125,9 @@ services:
     env_file:
     - ${APP_ENV_FILE:-.env.prod}
     environment:
-      QDRANT_URL: http://qdrant:6333
-      QDRANT_COLLECTION: ${QDRANT_COLLECTION:-domain_docs}
-      RAG_QDRANT_COLLECTION: ${RAG_QDRANT_COLLECTION:-investment_docs}
-      QDRANT_HOST: qdrant
       POSTGRES_HOST: postgres
       REDIS_HOST: redis
     depends_on:
-      qdrant:
-        condition: service_healthy
       api:
         condition: service_healthy
     command: python -m app.ops.index_curriculum
