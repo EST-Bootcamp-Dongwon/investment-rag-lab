@@ -1,5 +1,6 @@
-# [직접 입력] 내 도메인. DNS 가 이 서버를 가리키고 80/443 이 열려 있어야 HTTPS 인증서가 자동 발급된다 — 목록: SETUP_PLACEHOLDERS.md
-<MY_DOMAIN> {
+# :80 serves the EC2 public IP over HTTP. Set CADDY_SITE_ADDRESS to a DNS name
+# after its A record points here; Caddy then obtains and renews HTTPS itself.
+{$CADDY_SITE_ADDRESS} {
     encode zstd gzip
     reverse_proxy api:8000
 }

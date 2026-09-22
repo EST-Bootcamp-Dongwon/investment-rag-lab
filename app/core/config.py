@@ -2,7 +2,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    app_name: str = "Domain RAG MVP"
+    app_name: str = "Investment RAG Lab"
     app_env: str = "dev"
 
     qdrant_host: str = "localhost"
@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     vllm_base_url: str = "http://localhost:8001/v1"
     vllm_model: str = "Qwen/Qwen2.5-7B-Instruct"
     vllm_api_key: str = "EMPTY"
+    llm_mode: str = "extractive"  # Set to remote for configured OpenAI-compatible inference.
 
     upload_dir: str = "/app/data/uploads"
     chunk_size: int = 500

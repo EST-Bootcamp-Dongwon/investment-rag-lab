@@ -732,17 +732,21 @@ KOSDAQ|웹젠|게임`,
   });
 
   function setView(view) {
+    document.body.classList.toggle('analysis-active', view === 'analysis');
     stopTickDashboard();
     stopDashboardAssets();
     state.activeView = view;
+    if (view !== 'analysis') history.replaceState(null, '', `/?view=${view}`);
     $viewButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.view === view));
     $chatInputArea.classList.toggle('hidden', view !== 'learn');
     $clearChatBtn?.classList.toggle('hidden', view !== 'learn');
 
     if (view === 'home') renderHome();
+    if (view === 'analysis') window.InvestmentIntegration.mountAnalysis(window.requestedAnalysisTool || 'home');
     if (view === 'stocks') renderStocksView();
     if (view === 'learn') showWelcome();
     if (view === 'theory') renderTheoryIndex();
+    if (view === 'agent') renderAgentHub();
     if (view === 'simulation') {
       renderSimulationGuide();
       closePanels();
@@ -1938,6 +1942,7 @@ KOSDAQ|웹젠|게임`,
   }
 
   function renderTheoryIndex() {
+    if (window.InvestmentIntegration) { window.InvestmentIntegration.renderIndex(); return; }
     const dayCards = THEORY_DAYS.map(item => `
       <button class="theory-day-card" data-theory-day-link="${item.day}">
         <span class="theory-day-number">${item.day}</span>
@@ -1952,10 +1957,10 @@ KOSDAQ|웹젠|게임`,
       <article class="content-page theory-page">
         <header class="theory-index-head">
           <div>
-            <div class="content-kicker">4일 금융 이론</div>
-            <h1><mark>금융상품·자산배분</mark> 이론</h1>
+            <div class="content-kicker">10단원 금융 상식 시스템</div>
+            <h1><mark>금융상품·투자 분석</mark> 통합 학습</h1>
           </div>
-          <p class="content-lead">각 일차 메뉴는 독립적으로 읽을 수 있습니다. 개념을 먼저 읽고, 궁금한 점은 RAG 학습으로 이어서 질문해 보세요.</p>
+          <p class="content-lead">각 단원은 독립적으로 읽을 수 있습니다. 개념을 먼저 읽고, 궁금한 점은 RAG 질문과 백테스트로 이어서 검증해 보세요.</p>
         </header>
         <p class="glossary-hint"><i class="fa-solid fa-circle-info"></i> 점선 밑줄이 있는 경제 용어를 누르면 한자·영문·약자와 쉬운 설명을 볼 수 있습니다.</p>
         <section class="theory-index-grid">${dayCards}</section>
@@ -1965,8 +1970,44 @@ KOSDAQ|웹젠|게임`,
   }
 
   function openTheoryDay(day) {
-    if (!Number.isInteger(day) || day < 1 || day > 4) return;
-    window.location.assign(`/static/days/${String(day).padStart(2, '0')}.html`);
+    if (window.InvestmentIntegration) {
+      stopTickDashboard();
+      stopDashboardAssets();
+      state.activeView = 'theory';
+      $viewButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.view === 'theory'));
+      $chatInputArea.classList.add('hidden');
+      window.InvestmentIntegration.renderUnit(day, legacyDay => renderTheoryDay(THEORY_DAYS.find(item => item.day === legacyDay)));
+      closePanels();
+      history.replaceState(null, '', `/?view=theory&unit=${day}`);
+      return;
+    }
+    const lesson = THEORY_DAYS.find(item => item.day === day);
+    if (!lesson) return;
+    state.activeView = 'theory';
+    $viewButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.view === 'theory'));
+    $chatInputArea.classList.add('hidden');
+    renderTheoryDay(lesson);
+    closePanels();
+    window.history.replaceState(null, '', `/?view=theory&unit=${day}`);
+  }
+
+  function renderAgentHub() {
+    const agentUrl = `${window.location.protocol}//${window.location.hostname}:8290`;
+    $messages.innerHTML = `<section class="unit-bridge"><h1>금융 RAG · AI 에이전트</h1><p>통합 10단원 원문 검색, 문서 업로드, 도구 호출 이력과 결과 리포트를 같은 메뉴 안에서 사용합니다.</p><a href="${agentUrl}" target="_blank" rel="noopener noreferrer">독립 화면 열기 (8290)</a></section><iframe title="금융 RAG 오케스트레이터" class="curriculum-frame" src="${agentUrl}"></iframe>`;
+    return;
+    $messages.innerHTML = `
+      <article class="content-page theory-page">
+        <header class="theory-index-head">
+          <div><div class="content-kicker">DOMAIN RAG · INVESTMENT ANALYSIS</div><h1>AI 에이전트 <mark>통합 허브</mark></h1></div>
+          <p class="content-lead">동일한 FastAPI 백엔드와 학습 자료를 사용하는 RAG 질의응답, 분석 API, 그리고 Streamlit 오케스트레이터를 한 프로젝트에서 제공합니다.</p>
+        </header>
+        <section class="theory-index-grid">
+          <button class="theory-day-card" data-go="learn"><i class="fa-solid fa-comments"></i><h2>근거 기반 RAG 질문</h2><p>10단원 학습 문서와 업로드 자료에서 근거를 찾아 답합니다.</p><em>RAG 열기 <i class="fa-solid fa-arrow-right"></i></em></button>
+          <button class="theory-day-card" data-go="backtest"><i class="fa-solid fa-flask"></i><h2>퀀트 백테스트</h2><p>전략 규칙, 비용, 성과지표를 교육용 워크플로에서 검토합니다.</p><em>백테스트 열기 <i class="fa-solid fa-arrow-right"></i></em></button>
+          <a class="theory-day-card" href="${window.location.protocol}//${window.location.hostname}:8290" target="_blank" rel="noopener noreferrer"><i class="fa-solid fa-robot"></i><h2>오케스트레이터</h2><p>Streamlit 기반 도구 호출·리포트 화면을 별도 포트에서 엽니다.</p><em>Streamlit 열기 <i class="fa-solid fa-arrow-up-right-from-square"></i></em></a>
+        </section>
+      </article>`;
+    bindViewLinks();
   }
 
   function renderTheoryDay(lesson) {
@@ -3121,9 +3162,19 @@ effective_date: [기준일]
 
   renderScenarioResult();
   const requestedView = new URLSearchParams(window.location.search).get('view');
-  const initialView = ['home', 'stocks', 'learn', 'simulation', 'basis', 'backtest', 'calendar'].includes(requestedView)
+  const requestedUnit = Number(new URLSearchParams(window.location.search).get('unit'));
+  const initialView = ['home', 'stocks', 'learn', 'theory', 'analysis', 'agent', 'simulation', 'basis', 'backtest', 'calendar'].includes(requestedView)
     ? requestedView
     : 'home';
+  window.openCurriculumUnit = openTheoryDay;
+  window.openInvestmentTool = tool => {
+    window.requestedAnalysisTool = tool;
+    setView('analysis');
+    closePanels();
+  };
+  window.requestedAnalysisTool = new URLSearchParams(location.search).get('tool');
+  window.InvestmentIntegration.initialize();
   setView(initialView);
+  if (initialView === 'theory' && Number.isInteger(requestedUnit)) openTheoryDay(requestedUnit);
   $topKLabel.textContent = state.topK;
 })();

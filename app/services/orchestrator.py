@@ -67,6 +67,16 @@ class MainOrchestrator:
         domain: str = "general",
         session_id: str | None = None,
     ) -> OrchestratorResult:
+        if settings.llm_mode == "extractive":
+            arguments = {"query": question, "domain": domain, "top_k": 4}
+            raw = self.executor.execute("search_documents", arguments, db)
+            result = json.loads(raw)
+            answer = self.llm.extractive_answer(result.get("documents", []), domain)
+            return OrchestratorResult(
+                answer=answer,
+                tool_calls=[ToolCallRecord("search_documents", arguments, raw[:400])],
+                iterations=1, domain=domain, session_id=session_id,
+            )
         domain_prompt = DOMAIN_SYSTEM_PROMPTS.get(domain, DOMAIN_SYSTEM_PROMPTS["general"])
         system_content = _ORCHESTRATOR_PREFIX + "\n" + domain_prompt
 

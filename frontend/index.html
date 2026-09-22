@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="/static/style.css?v=20260919-small-text110" />
   <link rel="stylesheet" href="/static/assets/simulation-workbench.css?v=20260919-small-text110" />
   <link rel="stylesheet" href="/static/hangul-scale.css?v=20260919-1" />
+  <link rel="stylesheet" href="/static/assets/integration-shell.css?v=20260922" />
 </head>
 <body>
   <div class="offcanvas-backdrop" id="offcanvasBackdrop" aria-hidden="true"></div>
@@ -24,20 +25,37 @@
       </div>
 
       <nav class="topic-nav">
-        <p class="nav-label">4일 이론 학습</p>
+        <p class="nav-label">10단원 금융 상식 시스템</p>
         <button class="topic-btn theory-menu-btn" data-theory-day="1">
-          <span class="day-menu-number">1일차</span> 선물과 옵션
+          <span class="day-menu-number">1단원</span> 금융 기초와 저축
         </button>
         <button class="topic-btn theory-menu-btn" data-theory-day="2">
-          <span class="day-menu-number">2일차</span> 펀드 · ETF
+          <span class="day-menu-number">2단원</span> 주식 투자의 이해
         </button>
         <button class="topic-btn theory-menu-btn" data-theory-day="3">
-          <span class="day-menu-number">3일차</span> 채권 · 코인
+          <span class="day-menu-number">3단원</span> 채권 시장과 금리
         </button>
         <button class="topic-btn theory-menu-btn" data-theory-day="4">
-          <span class="day-menu-number">4일차</span> 자산배분, 퀀트
+          <span class="day-menu-number">4단원</span> 펀드와 ETF
         </button>
-
+        <button class="topic-btn theory-menu-btn" data-theory-day="5">
+          <span class="day-menu-number">5단원</span> 파생상품 (선물/옵션)
+        </button>
+        <button class="topic-btn theory-menu-btn" data-theory-day="6">
+          <span class="day-menu-number">6단원</span> 자산배분 전략
+        </button>
+        <button class="topic-btn theory-menu-btn" data-theory-day="7">
+          <span class="day-menu-number">7단원</span> 퀀트와 백테스트
+        </button>
+        <button class="topic-btn theory-menu-btn" data-theory-day="8">
+          <span class="day-menu-number">8단원</span> 매크로 경제 흐름
+        </button>
+        <button class="topic-btn theory-menu-btn" data-theory-day="9">
+          <span class="day-menu-number">9단원</span> 리스크 관리
+        </button>
+        <button class="topic-btn theory-menu-btn" data-theory-day="10">
+          <span class="day-menu-number">10단원</span> 실전 투자 시나리오
+        </button>
       </nav>
 
       <div class="sidebar-section rag-panel" id="ragPanel">
@@ -75,14 +93,15 @@
         <button class="panel-toggle" id="openLeftPanel" aria-controls="learningPanel" aria-label="학습 패널 열기">
           <i class="fa-solid fa-bars"></i><span>학습</span>
         </button>
-        <a class="main-kms-title" href="/?view=learn">금융과 행동</a>
+        <a class="main-kms-title" href="/?view=learn">Finance RAG Lab</a>
         <div class="brand-nav" aria-label="학습 서비스 메뉴">
           <button class="brand-nav-btn active" data-view="home"><i class="fa-solid fa-house"></i> 홈</button>
-          <button class="brand-nav-btn" data-view="stocks"><i class="fa-solid fa-building-columns"></i> 종목보기</button>
+          <button class="brand-nav-btn" data-view="theory"><i class="fa-solid fa-book-open"></i> 10단원 학습</button>
+          <button class="brand-nav-btn" data-view="analysis"><i class="fa-solid fa-chart-line"></i> 투자 분석</button>
+          <button class="brand-nav-btn" data-view="agent"><i class="fa-solid fa-robot"></i> AI 에이전트</button>
           <button class="brand-nav-btn" data-view="learn"><i class="fa-solid fa-comments"></i> RAG 질문</button>
           <button class="brand-nav-btn" data-view="simulation"><i class="fa-solid fa-chart-pie"></i> 시뮬레이션</button>
-          <button class="brand-nav-btn" data-view="basis"><i class="fa-solid fa-scale-balanced"></i> 베이시스</button>
-          <button class="brand-nav-btn" data-view="backtest"><i class="fa-solid fa-flask"></i> LEAN 백테스트</button>
+          <button class="brand-nav-btn" data-view="backtest"><i class="fa-solid fa-flask"></i> 백테스트</button>
           <button class="brand-nav-btn" data-view="calendar"><i class="fa-solid fa-calendar-days"></i> 캘린더</button>
         </div>
       </header>
@@ -90,9 +109,10 @@
       <div class="messages" id="messages">
         <div class="welcome-msg">
           <div class="welcome-icon"><i class="fa-solid fa-robot"></i></div>
-          <h2>금융상품·자산배분 RAG 학습랩</h2>
-          <p>4일 이론, 설명형 RAG 질문과 실습 시뮬레이션을 함께 활용해 보세요.</p>
+          <h2>금융 상식 시스템 RAG 랩</h2>
+          <p>10단원 금융 상식과 AI 에이전트를 함께 활용해 보세요.</p>
         </div>
+
       </div>
 
       <div class="chat-input-area">
@@ -221,9 +241,11 @@
 
   <script>/* [직접 입력] 백엔드를 다른 도메인에 따로 띄웠을 때만 그 주소(예: 'https://<MY_DOMAIN>'). 비워 두면 같은 출처(로컬 FastAPI)로 호출한다 */ window.API_BASE = '';</script>
   <script src="/static/assets/theory-data.js?v=20260919-discount-example"></script>
+  <script src="/static/assets/integration-curriculum.js?v=20260922"></script>
   <script src="/static/assets/day4-project-schedule.js?v=20260919-100-120-hours"></script>
   <script src="https://cdn.jsdelivr.net/npm/apexcharts@7.1.0"></script>
-  <script src="/static/app.js?v=20260919-small-text110"></script>
+  <script src="/static/assets/integration-shell.js?v=20260922"></script>
+  <script src="/static/app.js?v=20260922-integration"></script>
   <script src="/static/auth.js?v=20260905-gnb-unified"></script>
   <script src="/static/assets/modal-fit.js?v=20260905-simulator-specific-hints"></script>
   <script src="/static/assets/click-logger.js?v=20260905"></script>
