@@ -543,6 +543,7 @@ def text_to_image(req: DiffusionRequest) -> dict[str, str]:
     if not torch.cuda.is_available():
         raise HTTPException(status_code=503, detail="CUDA GPU is not available in this environment.")
 
+    import os
     model_id = os.getenv("DIFFUSERS_MODEL_ID", "runwayml/stable-diffusion-v1-5")
     pipe = StableDiffusionPipeline.from_pretrained(model_id, torch_dtype=torch.float16).to("cuda")
 

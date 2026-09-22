@@ -90,7 +90,7 @@ def _calc_corporate_tax(income: float) -> float:
     return max(0.0, income * 0.24 - 9_420_000_000)
 
 
-def _parse_df_to_transactions(df: "import pandas; pandas.DataFrame") -> list[dict]:
+def _parse_df_to_transactions(df) -> list[dict]:
     import pandas as pd
 
     raw_cols = list(df.columns)

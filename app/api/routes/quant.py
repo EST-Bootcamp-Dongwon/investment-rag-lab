@@ -21,7 +21,7 @@ except ImportError:  # Allows `uvicorn main:app` from app/backend.
 router = APIRouter()
 
 
-def _calc_rsi(series: "pd.Series", period: int = 14) -> "pd.Series":
+def _calc_rsi(series, period: int = 14):
     import pandas as pd
     delta = series.diff()
     gain = delta.clip(lower=0).rolling(period).mean()
