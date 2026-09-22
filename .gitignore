@@ -25,3 +25,8 @@ data/processed/
 data/lean-workflows/
 
 *.key
+
+# Scratch / temporary debug scripts
+scratch/
+scratch_*.sh
+scratch_*.py
