@@ -9,10 +9,7 @@
 ![streamlit](https://img.shields.io/badge/Streamlit-UI-red)
 ![docker](https://img.shields.io/badge/Docker-Container-blue)
 
-<!-- 🔴 화면 캡처 이미지가 들어갈 자리입니다. -->
-<p align="center">
-  <img src="data/image-2.png" alt="RAG 학습랩 및 퀀트 분석 대시보드 화면" width="880">
-</p>
+<!-- 🔴 화면 캡처(스크린샷) 업데이트 예정 -->
 
 ## 이 문서를 읽는 사람
 | 당신이 | 여기부터 | 그다음 |
@@ -39,28 +36,13 @@
 
 이 저장소는 순수 Vanilla JS 기반의 강력한 SPA(Single Page Application) 프론트엔드와 FastAPI 기반의 백엔드를 통합하여, 단일 환경에서 두 가지 기능을 자연스럽게 이용할 수 있도록 구축되었습니다.
 
-### 화면 미리보기
-
-<table>
-<tr>
-<td width="50%"><img src="data/image-2.png" alt="메인 대시보드"></td>
-<td width="50%"><img src="data/image-3.png" alt="RAG 채팅 화면"></td>
-</tr>
-<tr>
-<td><sub><b>메인 대시보드</b> — 퀀트 지표 및 투자 분석</sub></td>
-<td><sub><b>RAG 챗봇</b> — 금융 문서 기반 질의응답</sub></td>
-</tr>
-</table>
-
 ---
 
 ## 시스템 아키텍처
 
 프론트엔드는 `app.js` 단일 파일로 빌드된 SPA 아키텍처를 가지며, 백엔드는 FastAPI 로 REST API 를 제공합니다.
 
-<p align="center">
-  <img src="data/image-1.png" alt="시스템 아키텍처" width="880">
-</p>
+<!-- 🔴 아키텍처 다이어그램 업데이트 예정 -->
 
 ### 디렉토리 구조
 ```text
@@ -85,8 +67,8 @@
 ## 기능 명세
 
 ### 1. RAG 기반 금융 지식 질의응답
-- **문서 등록 (Ingestion)**: 텍스트 및 PDF 파일을 청킹(Chunking)하여 Qdrant 벡터 DB에 저장.
-- **RAG 검색**: 사용자 질문에 대해 유사도가 높은 문서 조각을 검색하여 제공.
+- **문서 등록 (Ingestion)**: 텍스트 및 PDF 파일을 청킹(Chunking)하여 PostgreSQL (pgvector)에 벡터 형태로 저장.
+- **하이브리드 검색**: 사용자 질문에 대해 시맨틱 벡터 검색과 키워드 검색을 결합(RRF)하여 유사도가 높은 문서 조각을 검색.
 - **LLM 연동**: Ollama 또는 OpenAI 호환 API를 통해 검색된 문맥을 바탕으로 자연어 답변 생성.
 
 ### 2. 퀀트 투자 분석 및 시뮬레이션
@@ -103,7 +85,7 @@
 | **언어/런타임** | Python 3.11, Vanilla JavaScript |
 | **백엔드 프레임워크** | FastAPI, Uvicorn |
 | **프론트엔드** | HTML5, CSS3, Vanilla JS (SPA 아키텍처) |
-| **데이터베이스** | PostgreSQL (pgvector), Qdrant (벡터 DB), Redis (캐시) |
+| **데이터베이스** | PostgreSQL (pgvector), Redis (캐시) |
 | **인프라/배포** | Docker, Docker Compose, AWS EC2 |
 | **퀀트/백테스트** | QuantConnect LEAN, yfinance |
 
@@ -111,10 +93,10 @@
 
 ## 빠른 시작과 배포
 
-본 프로젝트는 Docker Compose를 통해 전체 스택(FastAPI, Qdrant, Redis, PostgreSQL, Streamlit)을 한 번에 띄울 수 있도록 구성되어 있습니다.
+본 프로젝트는 Docker Compose를 통해 전체 스택(FastAPI, Redis, PostgreSQL, Streamlit)을 한 번에 띄울 수 있도록 구성되어 있습니다.
 
 ### 1. 환경 변수 설정
-`.env` 파일을 프로젝트 루트에 생성하고 필요한 API 키와 DB 자격 증명을 설정합니다. (상세 내용은 관리자에게 문의)
+`.env.local` 또는 `.env.prod` 파일을 프로젝트 루트에 생성하고 필요한 API 키와 DB 자격 증명을 설정합니다. (상세 내용은 관리자에게 문의)
 
 ### 2. 컨테이너 실행
 ```bash
